@@ -75,11 +75,11 @@ function cfcs_save_post($post_id) {
 			else {
 				$track = 0;
 			}
-			update_post_meta($post_id, 'cfcs_track_status', $track);
+			update_post_meta($post_id, '_cfcs_track_status', $track);
 		}
 		if ($update) {
-			update_post_meta($post_id, 'cfcs_status', $_POST['cfcs_status']);
-			update_post_meta($post_id, 'cfcs_notes', $_POST['cfcs_notes']);
+			update_post_meta($post_id, '_cfcs_status', $_POST['cfcs_status']);
+			update_post_meta($post_id, '_cfcs_notes', $_POST['cfcs_notes']);
 		}
 	}
 }
@@ -99,7 +99,7 @@ function cfcs_meta_box() {
 	$class = '';
 	switch ($post->post_type) {
 		case 'post':
-			$track = get_post_meta($post->ID, 'cfcs_track_status', true);
+			$track = get_post_meta($post->ID, '_cfcs_track_status', true);
 			if (!$track) {
 				$class = 'hidden';
 			}
@@ -121,7 +121,7 @@ function cfcs_meta_box() {
 <?php
 	foreach ($options as $k => $v) {
 ?>
-			<option value="<?php echo $k; ?>" <?php selected($k, get_post_meta($post->ID, 'cfcs_status', true)); ?>><?php echo $v; ?></option>
+			<option value="<?php echo $k; ?>" <?php selected($k, get_post_meta($post->ID, '_cfcs_status', true)); ?>><?php echo $v; ?></option>
 <?php
 }
 ?>
@@ -129,7 +129,7 @@ function cfcs_meta_box() {
 	</p>
 	<p>
 		<label for="cfcs_notes">Notes</label>
-		<textarea name="cfcs_notes" id="cfcs_notes"><?php echo esc_html(get_post_meta($post->ID, 'cfcs_notes', true)); ?></textarea>
+		<textarea name="cfcs_notes" id="cfcs_notes"><?php echo esc_html(get_post_meta($post->ID, '_cfcs_notes', true)); ?></textarea>
 	</p>
 	</div>
 	<script type="text/javascript">
@@ -212,7 +212,7 @@ function cfcs_status_report() {
 <?php
 		remove_filter('manage_edit-pages_columns', 'cfcs_edit_pages_cols');
 	}
-	$posts = query_posts('meta_key=cfcs_track_status&meta_value=1');
+	$posts = query_posts('meta_key=_cfcs_track_status&meta_value=1');
 	if (count($posts)) {
 		add_filter('manage_edit_columns', 'cfcs_edit_posts_cols');
 ?>
@@ -262,14 +262,14 @@ function cfcs_edit_list_col($name, $post_id) {
 		case 'cfcs-status':
 			$statuses = cfcs_statuses();
 			$show = '';
-			$val = get_post_meta($post_id, 'cfcs_status', true);
+			$val = get_post_meta($post_id, '_cfcs_status', true);
 			if (isset($statuses[$val])) {
 				$show = $statuses[$val];
 			}
 			echo '<span class="cfcs-status cfcs-status-'.esc_html($val).'">'.esc_html($show).'</span>';
 		break;
 		case 'cfcs-notes':
-			echo esc_html(get_post_meta($post_id, 'cfcs_notes', true));
+			echo esc_html(get_post_meta($post_id, '_cfcs_notes', true));
 		break;
 	}
 }
