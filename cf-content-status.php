@@ -12,11 +12,6 @@ Author URI: http://crowdfavorite.com
 
 /* TODO
 
-- attach page to dash menu instead of settings
-- plugin action links
-- create meta form
-- option to track status on post
-- save settings with post save
 - dashboard page show status
 
 */
@@ -38,22 +33,11 @@ add_action('init', 'cfcs_request_handler');
 function cfcs_admin_css() {
 	header('Content-type: text/css');
 ?>
-fieldset.options div.option {
-	background: #EAF3FA;
-	margin-bottom: 8px;
-	padding: 10px;
-}
-fieldset.options div.option label {
+#cfcs_meta_box label {
 	display: block;
-	float: left;
-	font-weight: bold;
-	margin-right: 10px;
-	width: 150px;
 }
-fieldset.options div.option span.help {
-	color: #666;
-	font-size: 11px;
-	margin-left: 8px;
+#cfcs_meta_box label.checkbox {
+	display: inline;
 }
 <?php
 	die();
@@ -64,28 +48,84 @@ function cfcs_admin_head() {
 }
 add_action('admin_head', 'cfcs_admin_head');
 
-function cfcs_save_post($post_id, $post) {
+function cfcs_save_post($post_id) {
+	$update = false;
 	if (!empty($_POST['cfcs_content_status_data'])) {
-// SAVE DATA HERE
-		update_post_meta($post_id, 'cfcs_status', $_POST['cfcs_status']);
-		update_post_meta($post_id, 'cfcs_notes', $_POST['cfcs_notes']);
+		$post = get_post($post_id);
+		if ($post->post_type == 'page') {
+			$update = true;
+		}
+		else if ($post->post_type == 'post') {
+			if (!empty($_POST['cfcs_track_status'])) {
+				$update = true;
+				$track = 1;
+			}
+			else {
+				$track = 0;
+			}
+			update_post_meta($post_id, 'cfcs_track_status', $track);
+		}
+		if ($update) {
+			update_post_meta($post_id, 'cfcs_status', $_POST['cfcs_status']);
+			update_post_meta($post_id, 'cfcs_notes', $_POST['cfcs_notes']);
+		}
 	}
 }
 add_action('save_post', 'cfcs_save_post');
 
 function cfcs_meta_box() {
 	global $post;
+	$class = '';
+	switch ($post->post_type) {
+		case 'post':
+			$track = get_post_meta($post->ID, 'cfcs_track_status', true);
+			if (!$track) {
+				$class = 'hidden';
+			}
+?>
+	<p>
+		<input type="checkbox" name="cfcs_track_status" id="cfcs_track_status" value="1" <?php checked('1', $track); ?> />
+		<label for="cfcs_track_status" class="checkbox">Track Status</label>
+	</p>
+<?php
+		break;
+	}
 ?>
 	<input type="hidden" name="cfcs_content_status_data" value="1" />
-	<label for="cfcs_status">Status</label>
-	<select name="cfcs_status" id="cfcs_status">
-		<option value="to-do" <?php selected('to-do', get_post_meta($post->ID, 'cfcs_status')); ?>>To Do</option>
-		<option value="in-progress" <?php selected('in-progress', get_post_meta($post->ID, 'cfcs_status')); ?>>In Progress</option>
-		<option value="to-review" <?php selected('to-review', get_post_meta($post->ID, 'cfcs_status')); ?>>Needs Review</option>
-		<option value="complete" <?php selected('complete', get_post_meta($post->ID, 'cfcs_status')); ?>>Complete</option>
-	</select>
-	<label for="cfcs_notes">Notes</label>
-	<textarea name="cfcs_notes" id="cfcs_notes"><?php echo esc_html(get_post_meta($post->ID, 'cfcs_notes')); ?></textarea>
+	<div class="settings <?php echo $class; ?>">
+	<p>
+		<label for="cfcs_status">Status</label>
+		<select name="cfcs_status" id="cfcs_status">
+			<option value="to-do" <?php selected('to-do', get_post_meta($post->ID, 'cfcs_status', true)); ?>>To Do</option>
+			<option value="in-progress" <?php selected('in-progress', get_post_meta($post->ID, 'cfcs_status', true)); ?>>In Progress</option>
+			<option value="to-review" <?php selected('to-review', get_post_meta($post->ID, 'cfcs_status', true)); ?>>Needs Review</option>
+			<option value="complete" <?php selected('complete', get_post_meta($post->ID, 'cfcs_status', true)); ?>>Complete</option>
+		</select>
+	</p>
+	<p>
+		<label for="cfcs_notes">Notes</label>
+		<textarea name="cfcs_notes" id="cfcs_notes"><?php echo esc_html(get_post_meta($post->ID, 'cfcs_notes', true)); ?></textarea>
+	</p>
+	</div>
+	<script type="text/javascript">
+	jQuery(function($) {
+		$('#cfcs_track_status').unbind('click').click(function(event) {
+			var settingsDiv = $(this).parents('#cfcs_meta_box').find('div.settings');
+			if ($(this).is(':checked')) {
+				settingsDiv.removeClass('hidden');
+			}
+			else {
+				settingsDiv.addClass('hidden');
+			}
+			if ($.browser.msie) {
+				event.cancelBubble = true;
+			}
+			else {
+				event.stopPropagation();
+			}
+		});
+	});
+	</script>
 <?php
 }
 function cfcs_add_meta_box() {
@@ -97,7 +137,7 @@ add_action('admin_init', 'cfcs_add_meta_box');
 function cfcs_admin_menu() {
 	if (current_user_can('edit_posts')) {
 		add_submenu_page(
-			'index.php'
+			'index.php',
 			__('Content Status', 'cf-content-status'),
 			__('Content Status', 'cf-content-status'),
 			10,
@@ -111,7 +151,7 @@ add_action('admin_menu', 'cfcs_admin_menu');
 function cfcs_plugin_action_links($links, $file) {
 	$plugin_file = basename(__FILE__);
 	if (basename($file) == $plugin_file) {
-		$status_link = '<a href="dashboard.php?page='.$plugin_file.'">'.__('Content Status', 'cf-content-status').'</a>';
+		$status_link = '<a href="index.php?page='.$plugin_file.'">'.__('Content Status', 'cf-content-status').'</a>';
 		array_unshift($links, $status_link);
 	}
 	return $links;
@@ -119,10 +159,19 @@ function cfcs_plugin_action_links($links, $file) {
 add_filter('plugin_action_links', 'cfcs_plugin_action_links', 10, 2);
 
 function cfcs_status_report() {
+	global $wpdb;
+	$pages = query_posts('post_type=page');
+	$posts = query_posts('meta_key=cfcs_track_status&meta_value=1');
 	print('
 <div class="wrap">
 	<h2>'.__('Content Status', 'cf-content-status').'</h2>
 	');
+	foreach ($pages as $page) {
+		echo '<p>'.$page->post_title;
+	}
+	foreach ($posts as $post) {
+		echo '<p>'.$post->post_title;
+	}
 	print('
 </div>
 	');
