@@ -10,12 +10,6 @@ Author URI: http://crowdfavorite.com
 
 // ini_set('display_errors', '1'); ini_set('error_reporting', E_ALL);
 
-/* TODO
-
-- dashboard page show status
-
-*/
-
 load_plugin_textdomain('cf-content-status');
 
 function cfcs_request_handler() {
@@ -38,6 +32,24 @@ function cfcs_admin_css() {
 }
 #cfcs_meta_box label.checkbox {
 	display: inline;
+}
+.cfcs-status {
+	border-radius: 3px;
+	-moz-border-radius: 3px;
+	-webkit-border-radius: 3px;
+	padding: 3px 5px;
+}
+.cfcs-status-to-do {
+	background: #f4d4d4;
+}
+.cfcs-status-in-progress {
+	background: #ffc;
+}
+.cfcs-status-to-review {
+	background: #e0edf5;
+}
+.cfcs-status-complete {
+	background: #c5eac0;
 }
 <?php
 	die();
@@ -73,6 +85,15 @@ function cfcs_save_post($post_id) {
 }
 add_action('save_post', 'cfcs_save_post');
 
+function cfcs_statuses() {
+	return array(
+		'to-do' => 'To Do',
+		'in-progress' => 'In Progress',
+		'to-review' => 'To Review',
+		'complete' => 'Complete',
+	);
+}
+
 function cfcs_meta_box() {
 	global $post;
 	$class = '';
@@ -90,16 +111,20 @@ function cfcs_meta_box() {
 <?php
 		break;
 	}
+	$options = cfcs_statuses();
 ?>
 	<input type="hidden" name="cfcs_content_status_data" value="1" />
 	<div class="settings <?php echo $class; ?>">
 	<p>
 		<label for="cfcs_status">Status</label>
 		<select name="cfcs_status" id="cfcs_status">
-			<option value="to-do" <?php selected('to-do', get_post_meta($post->ID, 'cfcs_status', true)); ?>>To Do</option>
-			<option value="in-progress" <?php selected('in-progress', get_post_meta($post->ID, 'cfcs_status', true)); ?>>In Progress</option>
-			<option value="to-review" <?php selected('to-review', get_post_meta($post->ID, 'cfcs_status', true)); ?>>Needs Review</option>
-			<option value="complete" <?php selected('complete', get_post_meta($post->ID, 'cfcs_status', true)); ?>>Complete</option>
+<?php
+	foreach ($options as $k => $v) {
+?>
+			<option value="<?php echo $k; ?>" <?php selected($k, get_post_meta($post->ID, 'cfcs_status', true)); ?>><?php echo $v; ?></option>
+<?php
+}
+?>
 		</select>
 	</p>
 	<p>
@@ -159,23 +184,97 @@ function cfcs_plugin_action_links($links, $file) {
 add_filter('plugin_action_links', 'cfcs_plugin_action_links', 10, 2);
 
 function cfcs_status_report() {
-	global $wpdb;
-	$pages = query_posts('post_type=page');
-	$posts = query_posts('meta_key=cfcs_track_status&meta_value=1');
 	print('
 <div class="wrap">
 	<h2>'.__('Content Status', 'cf-content-status').'</h2>
 	');
-	foreach ($pages as $page) {
-		echo '<p>'.$page->post_title;
+	$pages = query_posts('post_type=page');
+	if (count($pages)) {
+		add_filter('manage_edit-pages_columns', 'cfcs_edit_pages_cols');
+?>
+<table class="widefat page fixed" cellspacing="0" style="margin-bottom: 20px;">
+  <thead>
+  <tr>
+<?php print_column_headers('edit-pages'); ?>
+  </tr>
+  </thead>
+
+  <tfoot>
+  <tr>
+<?php print_column_headers('edit-pages', false); ?>
+  </tr>
+  </tfoot>
+
+  <tbody>
+  <?php page_rows($pages, 1, 9999); ?>
+  </tbody>
+</table>
+<?php
+		remove_filter('manage_edit-pages_columns', 'cfcs_edit_pages_cols');
 	}
-	foreach ($posts as $post) {
-		echo '<p>'.$post->post_title;
+	$posts = query_posts('meta_key=cfcs_track_status&meta_value=1');
+	if (count($posts)) {
+		add_filter('manage_edit_columns', 'cfcs_edit_posts_cols');
+?>
+<table class="widefat post fixed" cellspacing="0">
+	<thead>
+	<tr>
+<?php print_column_headers('edit'); ?>
+	</tr>
+	</thead>
+
+	<tfoot>
+	<tr>
+<?php print_column_headers('edit', false); ?>
+	</tr>
+	</tfoot>
+
+	<tbody>
+<?php post_rows(); ?>
+	</tbody>
+</table>
+<?php
+		remove_filter('manage_edit_columns', 'cfcs_edit_posts_cols');
 	}
 	print('
 </div>
 	');
 }
+
+function cfcs_edit_pages_cols($cols) {
+	unset($cols['cb']);
+	$cols['title'] = 'Pages';
+	$cols['cfcs-status'] = 'Status';
+	$cols['cfcs-notes'] = 'Notes';
+	return $cols;
+}
+
+function cfcs_edit_posts_cols($cols) {
+	unset($cols['cb']);
+	$cols['title'] = 'Posts';
+	$cols['cfcs-status'] = 'Status';
+	$cols['cfcs-notes'] = 'Notes';
+	return $cols;
+}
+
+function cfcs_edit_list_col($name, $post_id) {
+	switch ($name) {
+		case 'cfcs-status':
+			$statuses = cfcs_statuses();
+			$show = '';
+			$val = get_post_meta($post_id, 'cfcs_status', true);
+			if (isset($statuses[$val])) {
+				$show = $statuses[$val];
+			}
+			echo '<span class="cfcs-status cfcs-status-'.esc_html($val).'">'.esc_html($show).'</span>';
+		break;
+		case 'cfcs-notes':
+			echo esc_html(get_post_meta($post_id, 'cfcs_notes', true));
+		break;
+	}
+}
+add_action('manage_pages_custom_column', 'cfcs_edit_list_col', 10, 2);
+add_action('manage_posts_custom_column', 'cfcs_edit_list_col', 10, 2);
 
 //a:23:{s:11:"plugin_name";s:17:"CF Content Status";s:10:"plugin_uri";s:35:"http://crowdfavorite.com/wordpress/";s:18:"plugin_description";s:91:"Allows tracking and monitoring of content completion status in preparation for site launch.";s:14:"plugin_version";s:3:"1.0";s:6:"prefix";s:4:"cfcs";s:12:"localization";s:17:"cf-content-status";s:14:"settings_title";s:14:"Content Status";s:13:"settings_link";s:14:"Content Status";s:4:"init";b:0;s:7:"install";b:0;s:9:"post_edit";s:1:"1";s:12:"comment_edit";b:0;s:6:"jquery";b:0;s:6:"wp_css";b:0;s:5:"wp_js";b:0;s:9:"admin_css";s:1:"1";s:8:"admin_js";b:0;s:8:"meta_box";s:1:"1";s:15:"request_handler";b:0;s:6:"snoopy";b:0;s:11:"setting_cat";b:0;s:14:"setting_author";b:0;s:11:"custom_urls";b:0;}
 
