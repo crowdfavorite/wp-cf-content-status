@@ -188,7 +188,7 @@ function cfcs_status_report() {
 <div class="wrap">
 	<h2>'.__('Content Status', 'cf-content-status').'</h2>
 	');
-	$pages = query_posts('post_type=page');
+	$pages = query_posts('post_type=page&posts_per_page=9999&orderby=title&order=ASC');
 	if (count($pages)) {
 		add_filter('manage_edit-pages_columns', 'cfcs_edit_pages_cols');
 ?>
@@ -212,7 +212,7 @@ function cfcs_status_report() {
 <?php
 		remove_filter('manage_edit-pages_columns', 'cfcs_edit_pages_cols');
 	}
-	$posts = query_posts('meta_key=_cfcs_track_status&meta_value=1');
+	$posts = query_posts('meta_key=_cfcs_track_status&meta_value=1&posts_per_page=9999&orderby=title&order=ASC');
 	if (count($posts)) {
 		add_filter('manage_edit_columns', 'cfcs_edit_posts_cols');
 ?>
