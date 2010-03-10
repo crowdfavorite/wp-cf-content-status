@@ -269,7 +269,7 @@ function cfcs_edit_list_col($name, $post_id) {
 			echo '<span class="cfcs-status cfcs-status-'.esc_html($val).'">'.esc_html($show).'</span>';
 		break;
 		case 'cfcs-notes':
-			echo esc_html(get_post_meta($post_id, '_cfcs_notes', true));
+			echo nl2br(esc_html(get_post_meta($post_id, '_cfcs_notes', true)));
 		break;
 	}
 }
