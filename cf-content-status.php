@@ -184,10 +184,12 @@ function cfcs_plugin_action_links($links, $file) {
 add_filter('plugin_action_links', 'cfcs_plugin_action_links', 10, 2);
 
 function cfcs_status_report() {
+	global $current_screen;
 	print('
 <div class="wrap">
 	<h2>'.__('Content Status', 'cf-content-status').'</h2>
 	');
+	$current_screen = 'edit-pages';
 	$pages = query_posts('post_type=page&posts_per_page=9999&orderby=title&order=ASC');
 	if (count($pages)) {
 		add_filter('manage_edit-pages_columns', 'cfcs_edit_pages_cols');
@@ -206,12 +208,13 @@ function cfcs_status_report() {
   </tfoot>
 
   <tbody>
-  <?php page_rows($pages, 1, 9999); ?>
+<?php page_rows($pages, 1, 9999); ?>
   </tbody>
 </table>
 <?php
 		remove_filter('manage_edit-pages_columns', 'cfcs_edit_pages_cols');
 	}
+	$current_screen = 'edit';
 	$posts = query_posts('meta_key=_cfcs_track_status&meta_value=1&posts_per_page=9999&orderby=title&order=ASC');
 	if (count($posts)) {
 		add_filter('manage_edit_columns', 'cfcs_edit_posts_cols');
@@ -244,6 +247,8 @@ function cfcs_status_report() {
 function cfcs_edit_pages_cols($cols) {
 	unset($cols['cb']);
 	$cols['title'] = 'Pages';
+	$cols['author'] = 'Author';
+	$cols['date'] = 'Date';
 	$cols['cfcs-status'] = 'Status';
 	$cols['cfcs-notes'] = 'Notes';
 	return $cols;
@@ -251,6 +256,8 @@ function cfcs_edit_pages_cols($cols) {
 
 function cfcs_edit_posts_cols($cols) {
 	unset($cols['cb']);
+	unset($cols['comments']);
+	unset($cols['tags']);
 	$cols['title'] = 'Posts';
 	$cols['cfcs-status'] = 'Status';
 	$cols['cfcs-notes'] = 'Notes';
