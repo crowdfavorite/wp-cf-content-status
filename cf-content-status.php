@@ -165,7 +165,7 @@ function cfcs_admin_menu() {
 			'index.php',
 			__('Content Status', 'cf-content-status'),
 			__('Content Status', 'cf-content-status'),
-			10,
+			'edit_posts',
 			basename(__FILE__),
 			'cfcs_status_report'
 		);
@@ -184,6 +184,11 @@ function cfcs_plugin_action_links($links, $file) {
 add_filter('plugin_action_links', 'cfcs_plugin_action_links', 10, 2);
 
 function cfcs_status_report() {
+	if ( WP_DEBUG ) {
+		// set to non-debug levels to avoid Notices
+		error_reporting( E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_ERROR | E_WARNING | E_PARSE | E_USER_ERROR | E_USER_WARNING | E_RECOVERABLE_ERROR );
+	}
+
 	print('
 <div class="wrap">
 	<h2>'.__('Content Status', 'cf-content-status').'</h2>
@@ -207,6 +212,8 @@ function cfcs_status_report() {
 
   <tbody>
   <?php
+		// TODO: Fix this notice
+		// Notice: Trying to get property of non-object in /Users/jon/Sites/trunk.dev/wp-admin/includes/class-wp-posts-list-table.php on line 59
 		_get_list_table('WP_Posts_List_Table', array('screen' => 'edit-pages'))
 			->_display_rows_hierarchical($pages, 1, 9999);
   ?>
