@@ -206,7 +206,10 @@ function cfcs_status_report() {
   </tfoot>
 
   <tbody>
-  <?php page_rows($pages, 1, 9999); ?>
+  <?php
+		_get_list_table('WP_Posts_List_Table', array('screen' => 'edit-pages'))
+			->_display_rows_hierarchical($pages, 1, 9999);
+  ?>
   </tbody>
 </table>
 <?php
